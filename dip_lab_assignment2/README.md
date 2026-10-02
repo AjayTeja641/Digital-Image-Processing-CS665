@@ -126,26 +126,7 @@ After deployment, **anyone** opens the URL in their browser and uses the lab —
 | Authentication | None — this is an open educational tool. |
 | Expensive algorithms | CLAHE / rotation / bokeh are limited by the size caps above to reduce DoS risk. |
 
-**What a malicious user could still do**
-- Spam the free tier with many large (but still ≤ 8 MB) images → higher CPU bills / rate limits on the host.
-- Mitigate with host-level rate limits or Cloudflare.
 
-**What they cannot do**
-- Steal credentials (there are none).
-- Write arbitrary files on the server.
-- Execute shell commands via the image endpoints.
-
----
-
-## Design principle
-
-```
-Your Python algorithm  →  FastAPI  →  Browser
-```
-
-Intermediate results are shown on purpose so the site remains an **educational DIP laboratory**, not a generic photo filter site.
-
----
 
 ## Authors
 
