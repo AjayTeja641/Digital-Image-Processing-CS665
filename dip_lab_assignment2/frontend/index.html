@@ -1,0 +1,310 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DIP Lab — Assignments 1 & 2</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080b12;color:#eef2ff;font-family:Inter,system-ui,Arial}
+header{padding:38px 7%;border-bottom:1px solid #202a3d;background:linear-gradient(135deg,#0d1424,#111827)}
+h1{font-size:44px;margin:0 0 8px}header p{color:#9ba9bf;max-width:900px}
+main{max-width:1200px;margin:30px auto;padding:0 20px}
+.section-label{font-size:13px;letter-spacing:1px;color:#7a8ba8;margin:18px 0 8px;text-transform:uppercase}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+button,.tab{border:1px solid #30405a;background:#121a2a;color:#dce7fa;padding:11px 16px;border-radius:12px;cursor:pointer;font-size:14px}
+.tab.active,button:hover{background:#263754}
+.panel{background:#0e1420;border:1px solid #222d41;border-radius:18px;padding:24px}.hidden{display:none}
+input{margin:10px 0}.controls{display:flex;gap:18px;align-items:end;flex-wrap:wrap}.control{display:flex;flex-direction:column;color:#aebbd0}
+input[type=number],select{background:#101827;color:white;border:1px solid #35445e;padding:9px;border-radius:9px;width:120px}
+.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px;margin-top:24px}
+.card{background:#090e17;border:1px solid #243047;padding:10px;border-radius:14px}.card img{width:100%;border-radius:8px}.card b{display:block;padding:8px 2px}
+.note,.status{color:#94a5bd;line-height:1.6}
+canvas{max-width:100%;border:1px solid #35445e;border-radius:12px;cursor:crosshair;background:#05070b}
+label{margin-right:12px}
+</style></head><body>
+<header>
+  <h1>DIP Lab</h1>
+  <p>Interactive Digital Image Processing playground powered by the actual Python implementations from CS663 Assignments 1 &amp; 2. Upload an image, tune parameters, and inspect intermediate stages.</p>
+</header>
+<main>
+
+<div class="section-label">Assignment 1 — Contrast / Threshold / Geometry</div>
+<div class="tabs">
+  <button class="tab active" data-tool="stretch">Contrast Stretch</button>
+  <button class="tab" data-tool="histeq">Hist Equalize</button>
+  <button class="tab" data-tool="clahe">CLAHE</button>
+  <button class="tab" data-tool="histmatch">Hist Match</button>
+  <button class="tab" data-tool="manual">Manual Thresh</button>
+  <button class="tab" data-tool="otsu">Otsu</button>
+  <button class="tab" data-tool="adaptive">Adaptive Thresh</button>
+  <button class="tab" data-tool="shrink">Shrink</button>
+  <button class="tab" data-tool="rotate">Rotate</button>
+</div>
+
+<div class="section-label">Assignment 2 — Edges / Corners / Matching / Effects</div>
+<div class="tabs">
+  <button class="tab" data-tool="canny">Canny</button>
+  <button class="tab" data-tool="corners">Harris / Shi-Tomasi</button>
+  <button class="tab" data-tool="template">Template Matching</button>
+  <button class="tab" data-tool="sharpen">Sharpening</button>
+  <button class="tab" data-tool="bokeh">Bokeh</button>
+</div>
+
+<!-- ========== Assignment 1 panels ========== -->
+<section id="stretch" class="panel tool">
+  <h2>Linear Contrast Stretch</h2>
+  <p class="note">HSV → stretch V channel to [0,1] → back to RGB. Shows original & stretched luminance histograms conceptually via the V maps.</p>
+  <input id="stf" type="file" accept="image/*">
+  <div class="controls"><button onclick="run('/api/a1/stretch','stf','sto')">Process</button></div>
+  <div id="sto" class="gallery"></div>
+</section>
+
+<section id="histeq" class="panel tool hidden">
+  <h2>Histogram Equalization</h2>
+  <p class="note">Global HE on the V channel of HSV. Flattens the cumulative distribution of luminance.</p>
+  <input id="hef" type="file" accept="image/*">
+  <div class="controls"><button onclick="run('/api/a1/histeq','hef','heo')">Process</button></div>
+  <div id="heo" class="gallery"></div>
+</section>
+
+<section id="clahe" class="panel tool hidden">
+  <h2>CLAHE</h2>
+  <p class="note">Contrast-Limited Adaptive Histogram Equalization (sliding window on V). Large images are auto-resized for responsiveness.</p>
+  <input id="clf" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">Window <input id="clw" type="number" value="63"></label>
+    <label class="control">Clip <input id="clc" type="number" step="0.005" value="0.03"></label>
+    <button onclick="claheRun()">Process</button>
+  </div>
+  <div id="clo" class="gallery"></div>
+</section>
+
+<section id="histmatch" class="panel tool hidden">
+  <h2>Histogram Matching</h2>
+  <p class="note">Match the colour distribution of the source to the reference (ignores pure-black background). Useful for retina / medical images.</p>
+  <label>Source <input id="hms" type="file" accept="image/*"></label>
+  <label>Reference <input id="hmr" type="file" accept="image/*"></label>
+  <div class="controls">
+    <label class="control">Bins <input id="hmb" type="number" value="128"></label>
+    <button onclick="histMatchRun()">Match</button>
+  </div>
+  <div id="hmo" class="gallery"></div>
+</section>
+
+<section id="manual" class="panel tool hidden">
+  <h2>Manual Threshold</h2>
+  <p class="note">Global threshold T on grayscale. Optionally invert (useful for dark chalk on blackboard).</p>
+  <input id="mtf" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">T <input id="mtt" type="number" value="128"></label>
+    <label class="control">Invert <select id="mti"><option value="false">No</option><option value="true">Yes</option></select></label>
+    <button onclick="manualRun()">Process</button>
+  </div>
+  <div id="mto" class="gallery"></div>
+</section>
+
+<section id="otsu" class="panel tool hidden">
+  <h2>Otsu Threshold</h2>
+  <p class="note">Automatically chooses T that maximises between-class variance.</p>
+  <input id="otf" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">Invert <select id="oti"><option value="false">No</option><option value="true">Yes</option></select></label>
+    <button onclick="otsuRun()">Process</button>
+  </div>
+  <div id="oto" class="gallery"></div>
+</section>
+
+<section id="adaptive" class="panel tool hidden">
+  <h2>Adaptive (Local) Threshold</h2>
+  <p class="note">Per-pixel threshold = local mean − C (integral-image implementation). Handles lighting gradients that defeat global methods.</p>
+  <input id="adf" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">Window <input id="adw" type="number" value="21"></label>
+    <label class="control">C <input id="adc" type="number" value="5"></label>
+    <label class="control">Foreground <select id="adfg"><option value="dark">Dark</option><option value="bright">Bright</option></select></label>
+    <button onclick="adaptiveRun()">Process</button>
+  </div>
+  <div id="ado" class="gallery"></div>
+</section>
+
+<section id="shrink" class="panel tool hidden">
+  <h2>Image Shrink (Subsampling)</h2>
+  <p class="note">Take every d-th pixel. Larger d produces stronger Moiré patterns.</p>
+  <input id="shf" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">d <input id="shd" type="number" value="2" min="1"></label>
+    <button onclick="shrinkRun()">Process</button>
+  </div>
+  <div id="sho" class="gallery"></div>
+</section>
+
+<section id="rotate" class="panel tool hidden">
+  <h2>Image Rotation</h2>
+  <p class="note">Rotate around image centre using bilinear or nearest-neighbour sampling (inverse mapping). Large images are auto-resized.</p>
+  <input id="rof" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">Angle ° <input id="roa" type="number" step="0.1" value="5.65"></label>
+    <label class="control">Method <select id="rom"><option value="bilinear">Bilinear</option><option value="nearest">Nearest</option></select></label>
+    <button onclick="rotateRun()">Rotate</button>
+  </div>
+  <div id="roo" class="gallery"></div>
+</section>
+
+<!-- ========== Assignment 2 panels ========== -->
+<section id="canny" class="panel tool hidden">
+  <h2>Canny Edge Detection</h2>
+  <p class="note">Grayscale → Gaussian blur → gradients → NMS → double threshold → hysteresis.</p>
+  <input id="cf" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">Low <input id="cl" type="number" value="50"></label>
+    <label class="control">High <input id="ch" type="number" value="100"></label>
+    <label class="control">Sigma <input id="cs" type="number" step=".1" value="1.4"></label>
+    <button onclick="cannyRun()">Process</button>
+  </div>
+  <div id="co" class="gallery"></div>
+</section>
+
+<section id="corners" class="panel tool hidden">
+  <h2>Harris / Shi-Tomasi</h2>
+  <p class="note">Structure tensor → eigenvalues → cornerness → NMS → percentile threshold. Corners marked with visible coloured squares (red = Harris, green = Shi-Tomasi).</p>
+  <input id="ff" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">Harris k <input id="hk" type="number" step=".01" value=".04"></label>
+    <label class="control">Keep % <input id="kp" type="number" step=".5" value="3"></label>
+    <button onclick="cornerRun()">Process</button>
+  </div>
+  <div id="fo" class="gallery"></div>
+</section>
+
+<section id="template" class="panel tool hidden">
+  <h2>Template Matching — NCC</h2>
+  <p class="note">Scene reduced 5×. NCC computed independently for RGB channels.</p>
+  <label>Scene <input id="sf" type="file" accept="image/*"></label>
+  <label>Template <input id="tf" type="file" accept="image/*"></label>
+  <div class="controls">
+    <label class="control">Template size <input id="ts" type="number" value="51"></label>
+    <button onclick="templateRun()">Run NCC</button>
+  </div>
+  <div id="to" class="gallery"></div>
+</section>
+
+<section id="sharpen" class="panel tool hidden">
+  <h2>Unsharp Masking</h2>
+  <p class="note">Blur → mask = original − blur → scale mask → add to original.</p>
+  <input id="uf" type="file" accept="image/*">
+  <div class="controls">
+    <label class="control">Strength <input id="us" type="number" step=".1" value="1.5"></label>
+    <button onclick="sharpRun()">Sharpen</button>
+  </div>
+  <div id="uo" class="gallery"></div>
+</section>
+
+<section id="bokeh" class="panel tool hidden">
+  <h2>Bokeh Effect</h2>
+  <p class="note">Click points around the foreground to form a closed polygon (filled preview). That region stays sharp; background receives circular-disc blur. ≥ 3 points required.</p>
+  <input id="bf" type="file" accept="image/*">
+  <canvas id="cv"></canvas>
+  <div class="controls">
+    <label class="control">Diameter <input id="bd" type="number" value="50"></label>
+    <button onclick="clearPts()">Clear</button>
+    <button onclick="bokehRun()">Apply Bokeh</button>
+  </div>
+  <div id="bo" class="gallery"></div>
+</section>
+
+</main>
+<script>
+const $=x=>document.getElementById(x);
+
+// tab switching
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  t.classList.add("active");
+  document.querySelectorAll(".tool").forEach(x=>x.classList.add("hidden"));
+  $(t.dataset.tool).classList.remove("hidden");
+});
+
+async function post(url,fd,out){
+  $(out).innerHTML="<p class='status'>Processing...</p>";
+  try{
+    let r=await fetch(url,{method:"POST",body:fd});
+    let j=await r.json();
+    if(!r.ok){
+      $(out).innerHTML="<p class='status'>Something went wrong.<br>"+(j.detail||r.statusText||"Error")+"<br>Check image format & parameters.</p>";
+      return;
+    }
+    $(out).innerHTML=j.images.map(i=>`<div class="card"><img src="${i.data}"><b>${i.name}</b></div>`).join("")
+      +`<p class="note">${JSON.stringify(j.meta)}</p>`;
+  }catch(e){
+    $(out).innerHTML="<p class='status'>Network or server error. Is the backend running?</p>";
+  }
+}
+
+function add(f,id,n){f.append(n,$(id).value)}
+function imgfile(id){return $(id).files[0]}
+
+function run(url,fid,out){
+  if(!imgfile(fid)){$(out).innerHTML="<p class='status'>Please choose an image first.</p>";return;}
+  let f=new FormData();f.append("image",imgfile(fid));post(url,f,out);
+}
+
+// A1 helpers
+function claheRun(){
+  if(!imgfile("clf"))return;
+  let f=new FormData();f.append("image",imgfile("clf"));
+  add(f,"clw","window");add(f,"clc","clip");post("/api/a1/clahe",f,"clo");
+}
+function histMatchRun(){
+  if(!imgfile("hms")||!imgfile("hmr")){ $("hmo").innerHTML="<p class='status'>Need both source and reference.</p>";return;}
+  let f=new FormData();f.append("source",imgfile("hms"));f.append("reference",imgfile("hmr"));
+  add(f,"hmb","bins");post("/api/a1/histmatch",f,"hmo");
+}
+function manualRun(){
+  if(!imgfile("mtf"))return;
+  let f=new FormData();f.append("image",imgfile("mtf"));
+  add(f,"mtt","T");f.append("invert",$("mti").value);post("/api/a1/manual-thresh",f,"mto");
+}
+function otsuRun(){
+  if(!imgfile("otf"))return;
+  let f=new FormData();f.append("image",imgfile("otf"));
+  f.append("invert",$("oti").value);post("/api/a1/otsu",f,"oto");
+}
+function adaptiveRun(){
+  if(!imgfile("adf"))return;
+  let f=new FormData();f.append("image",imgfile("adf"));
+  add(f,"adw","window");add(f,"adc","C");f.append("foreground",$("adfg").value);
+  post("/api/a1/adaptive",f,"ado");
+}
+function shrinkRun(){
+  if(!imgfile("shf"))return;
+  let f=new FormData();f.append("image",imgfile("shf"));add(f,"shd","d");post("/api/a1/shrink",f,"sho");
+}
+function rotateRun(){
+  if(!imgfile("rof"))return;
+  let f=new FormData();f.append("image",imgfile("rof"));
+  add(f,"roa","angle");f.append("method",$("rom").value);post("/api/a1/rotate",f,"roo");
+}
+
+// A2
+function cannyRun(){let f=new FormData();f.append("image",imgfile("cf"));add(f,"cl","low");add(f,"ch","high");add(f,"cs","sigma");post("/api/canny",f,"co")}
+function cornerRun(){let f=new FormData();f.append("image",imgfile("ff"));add(f,"hk","k");add(f,"kp","keep");post("/api/corners",f,"fo")}
+function templateRun(){let f=new FormData();f.append("scene",imgfile("sf"));f.append("template",imgfile("tf"));add(f,"ts","size");post("/api/template",f,"to")}
+function sharpRun(){let f=new FormData();f.append("image",imgfile("uf"));add(f,"us","strength");post("/api/sharpen",f,"uo")}
+
+// Bokeh canvas
+let pts=[],cv=$("cv"),ctx=cv.getContext("2d"),im=new Image();
+$("bf").onchange=e=>{let r=new FileReader();r.onload=()=>{im.onload=()=>{let s=Math.min(900/im.width,700/im.height,1);cv.width=im.width*s;cv.height=im.height*s;ctx.drawImage(im,0,0,cv.width,cv.height);pts=[]};im.src=r.result};r.readAsDataURL(e.target.files[0])};
+cv.onclick=e=>{let r=cv.getBoundingClientRect();pts.push([(e.clientX-r.left)*im.width/cv.width,(e.clientY-r.top)*im.height/cv.height]);draw()};
+function draw(){
+  ctx.drawImage(im,0,0,cv.width,cv.height);
+  if(pts.length===0)return;
+  ctx.beginPath();
+  pts.forEach((p,i)=>{let x=p[0]*cv.width/im.width,y=p[1]*cv.height/im.height;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});
+  if(pts.length>2){ctx.closePath();ctx.fillStyle="rgba(114,167,255,0.35)";ctx.fill()}
+  ctx.strokeStyle="#72a7ff";ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle="#72a7ff";
+  pts.forEach(p=>{let x=p[0]*cv.width/im.width,y=p[1]*cv.height/im.height;ctx.beginPath();ctx.arc(x,y,4,0,Math.PI*2);ctx.fill()});
+}
+function clearPts(){pts=[];if(im.src)ctx.drawImage(im,0,0,cv.width,cv.height)}
+function bokehRun(){
+  if(pts.length<3){$("bo").innerHTML="<p class='status'>Select at least 3 points around the foreground subject.</p>";return}
+  let f=new FormData();f.append("image",imgfile("bf"));f.append("points",JSON.stringify(pts));add(f,"bd","diameter");post("/api/bokeh",f,"bo")
+}
+</script></body></html>

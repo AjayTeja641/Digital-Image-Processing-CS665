@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Secrets / local env (never commit)
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+secrets/
+
+# Large local test images (optional)
+# test_images/
