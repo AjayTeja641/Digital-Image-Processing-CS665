@@ -67,7 +67,7 @@ There are **no API keys, secrets, or credentials** in this repository.
 ---
 
 ## Run locally (anyone can do this)
-'''
+```
 git clone https://github.com/AjayTeja641/Digital-Image-Processing-CS665.git
 cd Digital-Image-Processing-CS665
 python -m venv .venv
@@ -75,7 +75,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
-'''
+```
 
 Open **http://127.0.0.1:8000** in your browser.
 
